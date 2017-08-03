@@ -1,5 +1,6 @@
 package com.example.redblack;
 
+import static com.example.redblack.Tree.Side.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -7,6 +8,14 @@ import java.util.stream.Stream;
 public class Tree<T extends Comparable<T>> {
     private static final byte BLACK = 0;
     private static final byte RED = 1;
+
+    enum Side {
+        LEFT, RIGHT;
+
+        Side other() {
+            return Side.values()[1 - ordinal()];
+        }
+    }
 
     private static class Node<T extends Comparable<T>> {
         byte color = RED;
@@ -38,6 +47,18 @@ public class Tree<T extends Comparable<T>> {
             return node;
         }
 
+        Node<T> child(Side side) {
+            return side == LEFT ? left : right;
+        }
+
+        void setChild(Side side, Node<T> child) {
+            if (side == LEFT) {
+                left = child;
+            } else {
+                right = child;
+            }
+        }
+
         Stream.Builder<T> buildStream(Stream.Builder<T> builder) {
             if (left != null) left.buildStream(builder);
             builder.accept(value);
@@ -64,12 +85,11 @@ public class Tree<T extends Comparable<T>> {
     }
 
     public boolean isEmpty() {
-        return size() == 0;
+        return size == 0;
     }
 
     public Stream<T> stream() {
-        if (root == null) return Stream.empty();
-        return root.buildStream(Stream.builder()).build();
+        return root == null ? Stream.empty() : root.buildStream(Stream.builder()).build();
     }
 
     private void append(List<Node<T>> path, Node<T> n, int dir) {
@@ -118,7 +138,7 @@ public class Tree<T extends Comparable<T>> {
     public Tree<T> insert(T val) {
         // Build the resulting tree
         Node<T> n = root;
-        List<Node<T>> path = new ArrayList<>();
+        List<Node<T>> path = new ArrayList<>();///?
 
         int dir = 0;
         while (n != null) {
@@ -140,50 +160,31 @@ public class Tree<T extends Comparable<T>> {
                 break;
             }
             Node<T> gp = path.get(i-2);
-            if (gp.left == p) {
-                Node<T> u = gp.right;
-                if (isRed(u)) {
-                    p.color = BLACK;
-                    gp.color = RED;
-                    gp.right = u.repaint(BLACK);
-                    i--;
-                } else if (p.left == n) {
-                    // Left-Left case
-                    gp.left = p.right;
-                    p.right = gp;
-                    handleOuterCase(path, i, n, p, gp);
-                    break;
-                } else {
-                    // Left-Right case
-                    p.right = n.left;
-                    gp.left = n.right;
-                    n.left = p;
-                    n.right = gp;
-                    handleInnerCase(path, i, n, p, gp);
-                    break;
-                }
+            Side left = gp.left == p ? LEFT : RIGHT;
+            Side right = left.other();
+            // The code below uses `left` and `right` for readability; however, it also handles
+            // the opposite case where `left` actually means RIGHT and `right` means LEFT
+            Node<T> u = gp.child(right);
+            if (isRed(u)) {
+                // Red uncle
+                p.color = BLACK;
+                gp.color = RED;
+                gp.setChild(right, u.repaint(BLACK));
+                i--;
+            } else if (p.child(left) == n) {
+                // Outer case: Left-Left or Right-Right
+                gp.setChild(left, p.child(right));
+                p.setChild(right, gp);
+                handleOuterCase(path, i, n, p, gp);
+                break;
             } else {
-                Node<T> u = gp.left;
-                if (isRed(u)) {
-                    p.color = BLACK;
-                    gp.color = RED;
-                    gp.left = u.repaint(BLACK);
-                    i--;
-                } else if (p.right == n) {
-                    // Right-Right case
-                    gp.right = p.left;
-                    p.left = gp;
-                    handleOuterCase(path, i, n, p, gp);
-                    break;
-                } else {
-                    // Right-Left case
-                    p.left = n.right;
-                    gp.right = n.left;
-                    n.right = p;
-                    n.left = gp;
-                    handleInnerCase(path, i, n, p, gp);
-                    break;
-                }
+                // Inner case: Left-Right or Right-Left
+                p.setChild(right, n.child(left));
+                gp.setChild(left, n.child(right));
+                n.setChild(left, p);
+                n.setChild(right, gp);
+                handleInnerCase(path, i, n, p, gp);
+                break;
             }
         }
         Node<T> r = path.get(0);
