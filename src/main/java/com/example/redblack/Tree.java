@@ -12,7 +12,7 @@ public class Tree<T extends Comparable<T>> {
     enum Side {
         LEFT, RIGHT;
 
-        Side other() {
+        Side opposite() {
             return Side.values()[1 - ordinal()];
         }
     }
@@ -113,7 +113,7 @@ public class Tree<T extends Comparable<T>> {
         p.color = BLACK;
         path.set(i-2, p);
         path.set(i-1, n);
-        reattach(path, i, p, gp);
+        reattach3(path, i, p, gp);
     }
 
     private void handleInnerCase(List<Node<T>> path, int i, Node<T> n, Node<T> p, Node<T> gp) {
@@ -121,10 +121,10 @@ public class Tree<T extends Comparable<T>> {
         n.color = BLACK;
         path.set(i-2, n);
         path.set(i-1, p);
-        reattach(path, i, n, gp);
+        reattach3(path, i, n, gp);
     }
 
-    private void reattach(List<Node<T>> path, int i, Node<T> n, Node<T> gp) {
+    private void reattach3(List<Node<T>> path, int i, Node<T> n, Node<T> gp) {
         if (i > 2) {
             Node<T> ggp = path.get(i-3);
             if (ggp.right == gp) {
@@ -161,7 +161,7 @@ public class Tree<T extends Comparable<T>> {
             }
             Node<T> gp = path.get(i-2);
             Side left = gp.left == p ? LEFT : RIGHT;
-            Side right = left.other();
+            Side right = left.opposite();
             // The code below uses `left` and `right` for readability; however, it also handles
             // the opposite case where `left` actually means RIGHT and `right` means LEFT
             Node<T> u = gp.child(right);
@@ -190,5 +190,157 @@ public class Tree<T extends Comparable<T>> {
         Node<T> r = path.get(0);
         r.color = BLACK;
         return new Tree<>(r, size+1);
+    }
+
+    private void reattach2(List<Node<T>> path, int i, Node<T> n, Node<T> p) {
+        if (i > 1) {
+            Node<T> gp = path.get(i-2);
+            if (gp.left == p) {
+                gp.left = n;
+            } else {
+                gp.right = n;
+            }
+        }
+        path.set(i-1, n);
+    }
+
+    private void handleDoubleBlackCase(List<Node<T>> path) {
+        for (int i = path.size()-1; i >= 0; i--) {
+            Node<T> n = path.get(i);
+            if (i == 0) {
+                n.color = BLACK;
+                return;
+            }
+            Node<T> p = path.get(i-1);
+            Side left = p.left == n ? LEFT : RIGHT;
+            Side right = left.opposite();
+            // The code below uses `left` and `right` for readability; however, it also handles
+            // the opposite case where `left` actually means RIGHT and `right` means LEFT
+            Node<T> s = p.child(right);
+            if (isRed(s.child(right))) {
+                // Outer case
+                p.setChild(right, s.child(left));
+                s = s.repaint(p.color);
+                s.setChild(left, p);
+                s.setChild(right, s.child(right).repaint(BLACK));
+                reattach2(path, i, s, p);
+                n.color = BLACK;
+                p.color = BLACK;
+                return;
+            } else if (isRed(s.child(left))) {
+                // Inner case
+                p.setChild(right, s.child(left).child(left));
+                Node<T> np = s.child(left).repaint(p.color);
+                np.setChild(left, p);
+                s = s.repaint(BLACK);
+                s.setChild(left, s.child(left).child(right));
+                np.setChild(right, s);
+                reattach2(path, i, np, p);
+                n.color = BLACK;
+                p.color = BLACK;
+                return;
+            }
+            if (s.color == BLACK) {
+                // Black sibling
+                p.setChild(right, s.repaint(RED));
+                if (p.color == RED) {
+                    p.color = BLACK;
+                    return;
+                }
+            } else {
+                // Red sibling
+                p.setChild(right, s.child(left));
+                s = s.repaint(p.color);
+                s.setChild(left, p);
+                reattach2(path, i, s, p);
+                p.color = RED;
+                path.set(i, p);
+                if (i < path.size()-1) {
+                    path.set(i+1, n);
+                } else {
+                    path.add(n);
+                }
+                i += 2;
+            }
+        }
+    }
+
+    private Node<T> append(List<Node<T>> path, Node<T> n) {
+        Node<T> copy = new Node<>(n);
+        if (!path.isEmpty()) {
+            Node<T> last = path.get(path.size()-1);
+            if (last.left == n) {
+                last.left = copy;
+            } else {
+                last.right = copy;
+            }
+        }
+        path.add(copy);
+        return copy;
+    }
+
+    public Tree<T> remove(T val) {
+        Node<T> n = root;
+        List<Node<T>> path = new ArrayList<>();///type?
+
+        // Build the resulting tree
+        while (n != null) {
+            append(path, n);
+            int dir = val.compareTo(n.value);
+            if (dir == 0) {
+                break;
+            }
+            n = dir < 0 ? n.left : n.right;
+        }
+        if (n == null) {
+            return this;
+        }
+
+        n = path.get(path.size()-1);
+        if (n.left != null && n.right != null) {
+            // Inner node, find left neighbour
+            Node<T> v = n;
+            for (n = n.left; n.right != null; n = n.right) {
+                append(path, n);
+            }
+            append(path, n).value = v.value;
+            v.value = n.value;
+        }
+
+        // Balance the tree
+        n = path.get(path.size()-1);
+        if (n.color == RED) {
+            // Drop red leaf
+            Node<T> p = path.get(path.size()-2);
+            drop(p, n);
+            return new Tree<>(path.get(0), size-1);
+        } else {
+            if (n.left != null || n.right != null) {
+                // Replace node with its child
+                Node<T> src = n.left != null ? n.left : n.right;
+                n.color = BLACK;
+                n.value = src.value;
+                n.left = src.left;
+                n.right = src.right;
+                return new Tree<>(path.get(0), size-1);
+            } else if (path.size() == 1) {
+                // Remove root
+                return new Tree<>();
+            } else {
+                // Double black
+                Node<T> p = path.get(path.size()-2);
+                handleDoubleBlackCase(path);
+                drop(p, n);
+            }
+        }
+        return new Tree<>(path.get(0), size-1);
+    }
+
+    private void drop(Node<T> p, Node<T> n) {
+        if (p.left == n) {
+            p.left = null;
+        } else {
+            p.right = null;
+        }
     }
 }
