@@ -1,6 +1,5 @@
 package com.example.redblack;
 
-import static org.junit.Assert.assertArrayEquals;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -9,7 +8,7 @@ import java.util.Random;
 
 public class ImmutabilityTest extends TestBase {
 
-    static class ImmChecker {
+    class ImmChecker {
         private Map<Tree<Integer>, int[]> vault = new HashMap<>();
 
         void store(Tree<Integer> tree) {
@@ -17,40 +16,42 @@ public class ImmutabilityTest extends TestBase {
         }
 
         void check() {
-            vault.forEach((tree, sig) -> assertArrayEquals(sig, signature(tree)));
+            vault.forEach((tree, sig) -> assertSignatureEquals(sig, signature(tree)));
         }
     }
 
     static final int N = 400;
 
-    final ImmChecker checker = new ImmChecker();
+    final ImmChecker immChecker = new ImmChecker();
 
     @Test
     public void testImmutability() {
         Random rand = new Random();
-        Tree<Integer> tree = new Tree<>();
 
         // First grow the tree
         for (int i=0; i<N; i++) {
-            checker.store(tree);
-            tree = tree.insert(rand.nextInt(N));
+            immChecker.store(tree());
+            insert(rand.nextInt(N));
         }
-        checker.check();
+        immChecker.check();
 
         // Do some inserts mixed with removals
         for (int i=0; i<N; i++) {
-            checker.store(tree);
-            boolean insert = rand.nextBoolean();
+            immChecker.store(tree());
             int n = rand.nextInt(N);
-            tree = insert ? tree.insert(n) : tree.remove(n);
+            if (rand.nextBoolean()) {
+                insert(n);
+            } else {
+                remove(n);
+            }
         }
-        checker.check();
+        immChecker.check();
 
         // Shrink the tree
         for (int i=0; i<N; i++) {
-            checker.store(tree);
-            tree = tree.remove(rand.nextInt(N));
+            immChecker.store(tree());
+            remove(rand.nextInt(N));
         }
-        checker.check();
+        immChecker.check();
     }
 }
