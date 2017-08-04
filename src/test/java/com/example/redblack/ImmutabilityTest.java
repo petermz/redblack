@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class ImmutabilityTest extends TestBase {
 
-    static class Vault {
+    static class ImmChecker {
         private Map<Tree<Integer>, int[]> vault = new HashMap<>();
 
         void store(Tree<Integer> tree) {
@@ -21,37 +21,36 @@ public class ImmutabilityTest extends TestBase {
         }
     }
 
+    static final int N = 300;
+
+    final ImmChecker checker = new ImmChecker();
+
     @Test
     public void testImmutability() {
-        final int N = 1000;
-        final Random rand = new Random();
-
+        Random rand = new Random();
         Tree<Integer> tree = new Tree<>();
 
         // First grow the tree
-        Vault vault = new Vault();
         for (int i=0; i<N; i++) {
-            vault.store(tree);
+            checker.store(tree);
             tree = tree.insert(rand.nextInt(N));
         }
-        vault.check();
+        checker.check();
 
         // Do some inserts mixed with removals
-        vault = new Vault();
         for (int i=0; i<N; i++) {
-            vault.store(tree);
+            checker.store(tree);
             boolean insert = rand.nextBoolean();
             int n = rand.nextInt(N);
             tree = insert ? tree.insert(n) : tree.remove(n);
         }
-        vault.check();
+        checker.check();
 
         // Shrink the tree
-        vault = new Vault();
         for (int i=0; i<N; i++) {
-            vault.store(tree);
+            checker.store(tree);
             tree = tree.remove(rand.nextInt(N));
         }
-        vault.check();
+        checker.check();
     }
 }

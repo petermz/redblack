@@ -74,8 +74,8 @@ public class Tree<T extends Comparable<T>> {
     private boolean contains(Node<T> node, T value) {
         if (node == null) return false;
         int cmp = value.compareTo(node.value);
-        return cmp == 0 ||
-               cmp < 0 ? contains(node.left, value) : contains(node.right, value);
+        return (cmp == 0) ||
+               (cmp < 0 ? contains(node.left, value) : contains(node.right, value));
     }
 
     public boolean contains(T value) {

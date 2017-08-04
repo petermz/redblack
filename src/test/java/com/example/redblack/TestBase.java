@@ -2,7 +2,6 @@ package com.example.redblack;
 
 import java.util.*;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -29,6 +28,11 @@ class TestBase {
         void check() {
             assertArrayEquals(signature(tree), signature(expected.iterator()));
         }
+
+        Tree<Integer> createTree(IntStream stream) {
+            stream.forEach(this::insert);
+            return tree;
+        }
     }
 
     private static int[] signature(Iterator<Integer> it) {
@@ -36,12 +40,12 @@ class TestBase {
         return StreamSupport.stream(iterable.spliterator(), false).mapToInt(Integer::intValue).toArray();
     }
 
-    static int[] signature(Tree<Integer> tree) {
+    protected static int[] signature(Tree<Integer> tree) {
         return signature(tree.iterator());
     }
 
-    static Tree<Integer> createTree(IntStream stream, OpChecker checker) {
-        stream.forEach(checker::insert);
-        return checker.tree;
+    protected static IntStream randomStream(int limit) {
+        Random rand = new Random();
+        return IntStream.iterate(0, n -> rand.nextInt(limit));
     }
 }
