@@ -21,7 +21,7 @@ public class ImmutabilityTest extends TestBase {
         }
     }
 
-    static final int N = 300;
+    static final int N = 400;
 
     final ImmChecker checker = new ImmChecker();
 

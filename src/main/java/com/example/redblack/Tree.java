@@ -58,15 +58,24 @@ public class Tree<T extends Comparable<T>> {
         this.size = size;
     }
 
+    /**
+     * Creates an empty Tree.
+     */
     public Tree() {
         root = null;
         size = 0;
     }
 
+    /**
+     * Returns size of the tree.
+     */
     public int size() {
         return size;
     }
 
+    /**
+     * Returns {@code true} if the tree is empty.
+     */
     public boolean isEmpty() {
         return size == 0;
     }
@@ -78,10 +87,16 @@ public class Tree<T extends Comparable<T>> {
                (cmp < 0 ? contains(node.left, value) : contains(node.right, value));
     }
 
+    /**
+     * Returns {@code true} if this element is contained in the tree.
+     */
     public boolean contains(T value) {
         return contains(root, value);
     }
 
+    /**
+     * Returns an iterator over the contents of the tree.
+     */
     public Iterator<T> iterator() {
         return new Iterator<T>() {
             Stack<Node<T>> path = new Stack<>();
@@ -164,6 +179,10 @@ public class Tree<T extends Comparable<T>> {
         }
     }
 
+    /**
+     * Returns a copy of the tree with an element inserted.
+     * If the element is already in the tree, returns {@code this}.
+     */
     public Tree<T> insert(T value) {
         // Build the resulting tree
         Node<T> n = root;
@@ -314,6 +333,10 @@ public class Tree<T extends Comparable<T>> {
         }
     }
 
+    /**
+     * Returns a copy of the tree with an element removed.
+     * If the tree does not contain this element, returns {@code this}.
+     */
     public Tree<T> remove(T value) {
         Node<T> n = root;
         Stack<Node<T>> path = new Stack<>();
