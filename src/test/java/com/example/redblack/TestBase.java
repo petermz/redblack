@@ -1,13 +1,13 @@
 package com.example.redblack;
 
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.junit.Assert.assertArrayEquals;
 
-public class TestBase {
+class TestBase {
     static class OpChecker {
         Tree<Integer> tree = new Tree<>();
         Set<Integer> expected = new TreeSet<>();
@@ -27,12 +27,17 @@ public class TestBase {
         }
 
         void check() {
-            assertArrayEquals(signature(tree.stream()), signature(expected.stream()));
+            assertArrayEquals(signature(tree), signature(expected.iterator()));
         }
     }
 
-    static int[] signature(Stream<Integer> stream) {
-        return stream.mapToInt(Integer::intValue).toArray();
+    private static int[] signature(Iterator<Integer> it) {
+        final Iterable<Integer> iterable = () -> it;
+        return StreamSupport.stream(iterable.spliterator(), false).mapToInt(Integer::intValue).toArray();
+    }
+
+    static int[] signature(Tree<Integer> tree) {
+        return signature(tree.iterator());
     }
 
     static Tree<Integer> createTree(IntStream stream, OpChecker checker) {

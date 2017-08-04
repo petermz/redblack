@@ -1,39 +1,26 @@
 package com.example.redblack;
 
-import static com.example.redblack.Tree.Side.*;
-
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
 
 public class Tree<T extends Comparable<T>> {
-    private static final byte BLACK = 0;
-    private static final byte RED = 1;
+    private static final boolean BLACK = true;
+    private static final boolean RED = false;
 
-    enum Side {
-        LEFT, RIGHT;
-
-        Side opposite() {
-            return Side.values()[1 - ordinal()];
-        }
-    }
+    private static final boolean LEFT = false;
+    private static final boolean RIGHT = true;
 
     private static class Stack<E> extends LinkedList<E> {}
 
     private static class Node<T extends Comparable<T>> {
-        byte color = RED;
+        boolean color = RED;
         T value;
         Node<T> left;
         Node<T> right;
 
         Node(T value) {
             this.value = value;
-        }
-
-        Node(byte black, T value, Node<T> left, Node<T> right) {
-            this.color = black;
-            this.value = value;
-            this.left = left;
-            this.right = right;
         }
 
         Node(Node<T> node) {
@@ -43,31 +30,25 @@ public class Tree<T extends Comparable<T>> {
             this.right = node.right;
         }
 
-        Node<T> repaint(byte color) {
+        Node<T> repaint(boolean color) {
             Node<T> node = new Node<>(this);
             node.color = color;
             return node;
         }
 
-        Node<T> child(Side side) {
+        Node<T> child(boolean side) {
             return side == LEFT ? left : right;
         }
 
-        void setChild(Side side, Node<T> child) {
+        void setChild(boolean side, Node<T> child) {
             if (side == LEFT) {
                 left = child;
             } else {
                 right = child;
             }
         }
-
-        Stream.Builder<T> buildStream(Stream.Builder<T> builder) {
-            if (left != null) left.buildStream(builder);
-            builder.accept(value);
-            if (right != null) right.buildStream(builder);
-            return builder;
-        }
     }
+
 
     private final Node<T> root;
     private final int size;
@@ -90,10 +71,53 @@ public class Tree<T extends Comparable<T>> {
         return size == 0;
     }
 
-    public Stream<T> stream() {
-        return root == null ? Stream.empty() : root.buildStream(Stream.builder()).build();
+    private boolean contains(Node<T> node, T value) {
+        if (node == null) return false;
+        int cmp = value.compareTo(node.value);
+        return cmp == 0 ||
+               cmp < 0 ? contains(node.left, value) : contains(node.right, value);
     }
 
+    public boolean contains(T value) {
+        return contains(root, value);
+    }
+
+    public Iterator<T> iterator() {
+        return new Iterator<T>() {
+            Stack<Node<T>> path = new Stack<>();
+
+            {
+                for (Node<T> n = root; n != null; n = n.left) {
+                    path.push(n);
+                }
+            }
+
+            public boolean hasNext() {
+                return ! path.isEmpty();
+            }
+
+            public T next() {
+                if (! hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Node<T> v = path.peek();
+                Node<T> n = v.right;
+                if (n != null) {
+                    path.push(n);
+                    for (; n.left != null; n = n.left) {
+                        path.push(n.left);
+                    }
+                } else {
+                    Node<T> p;
+                    do {
+                        n = path.pop();
+                        p = path.peek();
+                    } while (p != null && p.right == n);
+                }
+                return v.value;
+            }
+        };
+    }
 
     // Insert
 
@@ -140,7 +164,7 @@ public class Tree<T extends Comparable<T>> {
         }
     }
 
-    public Tree<T> insert(T val) {
+    public Tree<T> insert(T value) {
         // Build the resulting tree
         Node<T> n = root;
         Stack<Node<T>> path = new Stack<>();
@@ -148,14 +172,14 @@ public class Tree<T extends Comparable<T>> {
         int dir = 0;
         while (n != null) {
             push(new Node<>(n), path, dir);
-            dir = val.compareTo(n.value);
+            dir = value.compareTo(n.value);
             if (dir == 0) {
                 return this;
             } else {
                 n = dir < 0 ? n.left : n.right;
             }
         }
-        push(new Node<>(val), path, dir);
+        push(new Node<>(value), path, dir);
 
         // Balance the tree
         for (; path.size() > 2; path.pop()) {
@@ -165,8 +189,8 @@ public class Tree<T extends Comparable<T>> {
                 break;
             }
             Node<T> gp = path.get(2);
-            Side left = gp.left == p ? LEFT : RIGHT;
-            Side right = left.opposite();
+            boolean left = gp.left == p ? LEFT : RIGHT;
+            boolean right = !left;
             // The code below uses `left` and `right` for readability; however, it also handles
             // the opposite case where `left` actually means RIGHT and `right` means LEFT
             Node<T> u = gp.child(right);
@@ -220,8 +244,8 @@ public class Tree<T extends Comparable<T>> {
                 return n;
             }
             Node<T> p = path.peek();
-            Side left = p.left == n ? LEFT : RIGHT;
-            Side right = left.opposite();
+            boolean left = p.left == n ? LEFT : RIGHT;
+            boolean right = !left;
             // The code below uses `left` and `right` for readability; however, it also handles
             // the opposite case where `left` actually means RIGHT and `right` means LEFT
             Node<T> s = p.child(right);
@@ -290,14 +314,14 @@ public class Tree<T extends Comparable<T>> {
         }
     }
 
-    public Tree<T> remove(T val) {
+    public Tree<T> remove(T value) {
         Node<T> n = root;
         Stack<Node<T>> path = new Stack<>();
 
         // Build the resulting tree
         while (n != null) {
             push(n, path);
-            int dir = val.compareTo(n.value);
+            int dir = value.compareTo(n.value);
             if (dir == 0) {
                 break;
             }

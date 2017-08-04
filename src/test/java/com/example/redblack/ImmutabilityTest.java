@@ -6,23 +6,18 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.stream.Stream;
 
-public class ImmutabilityTest {
+public class ImmutabilityTest extends TestBase {
 
     static class Vault {
         private Map<Tree<Integer>, int[]> vault = new HashMap<>();
 
-        private int[] signature(Stream<Integer> stream) {///common
-            return stream.mapToInt(Integer::intValue).toArray();
-        }
-
         void store(Tree<Integer> tree) {
-            vault.put(tree, signature(tree.stream()));
+            vault.put(tree, signature(tree));
         }
 
         void check() {
-            vault.forEach((tree, sig) -> assertArrayEquals(sig, signature(tree.stream())));
+            vault.forEach((tree, sig) -> assertArrayEquals(sig, signature(tree)));
         }
     }
 
